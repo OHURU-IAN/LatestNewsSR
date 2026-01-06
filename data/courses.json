@@ -1,0 +1,134 @@
+{
+  "courses": [
+    {
+      "id": "sr-foundations",
+      "title": "Shepherd\u2019s Rod Message \u2014 Foundations",
+      "description": "A guided, in-order study path. Replace titles/descriptions with your official outline later.",
+      "modules": [
+        {
+          "id": "m1",
+          "title": "Module 1: Getting Oriented",
+          "lessons": [
+            {
+              "id": "l1",
+              "title": "Lesson 1 \u2014 Why Study in Order?",
+              "summary": "How this platform organizes videos, audios, and PPTX into a guided study.",
+              "media": {
+                "video": {
+                  "type": "embed",
+                  "url": "https://www.youtube.com/embed/dQw4w9WgXcQ"
+                },
+                "audio": {
+                  "type": "file",
+                  "url": ""
+                },
+                "pptx": {
+                  "type": "file",
+                  "url": ""
+                }
+              }
+            },
+            {
+              "id": "l2",
+              "title": "Lesson 2 \u2014 Study Tools & Notes",
+              "summary": "A practical workflow for watching/listening, downloading slides, and taking notes.",
+              "media": {
+                "video": {
+                  "type": "embed",
+                  "url": "https://www.youtube.com/embed/dQw4w9WgXcQ"
+                },
+                "audio": {
+                  "type": "file",
+                  "url": ""
+                },
+                "pptx": {
+                  "type": "file",
+                  "url": ""
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "m2",
+          "title": "Module 2: The Message at a Glance",
+          "lessons": [
+            {
+              "id": "l3",
+              "title": "Lesson 3 \u2014 Big Picture Timeline (Starter)",
+              "summary": "Placeholder for a timeline-style presentation lesson.",
+              "media": {
+                "video": {
+                  "type": "embed",
+                  "url": "https://www.youtube.com/embed/dQw4w9WgXcQ"
+                },
+                "audio": {
+                  "type": "file",
+                  "url": ""
+                },
+                "pptx": {
+                  "type": "file",
+                  "url": ""
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "guided",
+        "beginner"
+      ]
+    },
+    {
+      "id": "sr-symbolic-code",
+      "title": "Symbolic Code \u2014 Study Track",
+      "description": "A track dedicated to symbolic interpretation lessons (starter structure).",
+      "modules": [
+        {
+          "id": "m1",
+          "title": "Module 1: Symbols & Patterns",
+          "lessons": [
+            {
+              "id": "l1",
+              "title": "Lesson 1 \u2014 Reading Symbols Responsibly",
+              "summary": "A starter lesson placeholder.",
+              "media": {
+                "video": {
+                  "type": "embed",
+                  "url": "https://www.youtube.com/embed/dQw4w9WgXcQ"
+                },
+                "audio": {
+                  "type": "file",
+                  "url": ""
+                },
+                "pptx": {
+                  "type": "file",
+                  "url": ""
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "guided",
+        "intermediate"
+      ]
+    }
+  ],
+  "channels": [
+    {
+      "id": "general",
+      "title": "General"
+    },
+    {
+      "id": "questions",
+      "title": "Questions"
+    },
+    {
+      "id": "testimonies",
+      "title": "Testimonies"
+    }
+  ]
+}

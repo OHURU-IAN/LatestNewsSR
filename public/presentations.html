@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Presentations</title>
+  <link rel="stylesheet" href="styles.css" />
+  
+</head>
+<body>
+  <div class="nav">
+    <div class="nav-inner">
+      <div class="nav-top">
+        <div class="brand">
+          <div class="brand-badge" aria-hidden="true"></div>
+          <div class="brand-text">
+            <div class="brand-title">Shepherd's Rod Study Hub</div>
+            <div class="brand-subtitle small">Courses / Library / Live / Community</div>
+          </div>
+        </div>
+        <div class="nav-spacer"></div>
+        <div class="userbox">
+          <span class="pill">Signed in as <b id="userLabel" data-user-label></b></span>
+        </div>
+        <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">Menu</button>
+      </div>
+
+      <div class="nav-links" id="navLinks">
+        <a href="index.html">Home</a>
+        <a href="presentations.html">Presentations</a>
+        <a href="live.html">Live</a>
+        <a href="community.html">Community</a>
+        <a href="admin.html">Admin</a>
+      </div>
+    </div>
+  </div>
+  <div class="container">
+    <div class="card hero">
+      <div class="hero-grid">
+        <div>
+          <div class="label">Guided path first</div>
+          <h1 class="h1">Presentations</h1>
+          <div class="subtitle">Study in order with Guided Courses, or browse the library for videos, audios, and PPTX downloads.</div>
+        </div>
+        <div class="hero-visual" aria-hidden="true">
+          <img src="img/library-illustration.svg" alt="Library illustration" />
+        </div>
+      </div>
+    </div>
+
+    <div class="split-columns">
+      <div class="stack">
+        <div class="card elevated">
+          <div class="hd">
+            <div class="label">Primary</div>
+            <h2 class="h2">Guided Courses</h2>
+            <div class="small">Stay in sequence: Courses -> Modules -> Lessons. Track your progress as you go.</div>
+          </div>
+          <div class="bd">
+            <div id="courseList" class="list"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stack">
+        <div class="card">
+          <div class="hd">
+            <div class="label">Library</div>
+            <h2 class="h2">Videos</h2>
+            <div class="small">All lessons with video sources.</div>
+          </div>
+          <div class="bd">
+            <div id="videoList" class="list"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="hd">
+            <div class="label">Library</div>
+            <h2 class="h2">Audios & Downloads</h2>
+            <div class="small">Audio lessons and PPTX downloads.</div>
+          </div>
+          <div class="bd">
+            <div class="small" style="margin-bottom:10px">Audio lessons</div>
+            <div id="audioList" class="list"></div>
+            <div class="sep"></div>
+            <div class="small" style="margin-bottom:10px">PPTX downloads</div>
+            <div id="pptxList" class="list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      Explore guided courses or jump into the library to revisit specific lessons.
+      Shepherd's Rod Study Hub — Guided courses, live sessions, and community chat.
+    </div>
+  </div>
+
+  <script>
+document.addEventListener("DOMContentLoaded", async ()=>{
+  const data = await API.getJSON("/api/courses");
+  const courses = data.courses || [];
+  const courseList = qs("#courseList");
+  const videoList = qs("#videoList");
+  const audioList = qs("#audioList");
+  const pptxList = qs("#pptxList");
+
+  const addCourse = (course)=>{
+    const comp = courseCompletion(course);
+    const a = document.createElement("a");
+    a.className = "list-card";
+    a.href = `course.html?course=${encodeURIComponent(course.id)}`;
+    a.innerHTML = `
+      <div class="list-top">
+        <div class="list-title">${escapeHTML(course.title)}</div>
+        <span class="pill-progress">${comp.done}/${comp.total} | ${comp.pct}%</span>
+      </div>
+      <div class="list-meta">${escapeHTML(course.description||"")}</div>
+      <div class="list-actions">
+        <span>Guided path</span>
+        <span class="chip">Continue</span>
+      </div>`;
+    courseList.appendChild(a);
+  };
+
+  const addLink = (root, href, title, sub)=>{
+    const a = document.createElement("a");
+    a.className = "list-card";
+    a.href = href;
+    a.innerHTML = `<div class="list-title">${escapeHTML(title)}</div>
+      <div class="list-meta">${escapeHTML(sub||"")}</div>`;
+    root.appendChild(a);
+  };
+
+  courses.forEach(addCourse);
+
+  // Flatten lessons
+  const lessons = [];
+  for(const c of courses){
+    for(const m of c.modules){
+      for(const l of m.lessons){
+        lessons.push({course:c, module:m, lesson:l});
+      }
+    }
+  }
+
+  // Videos
+  lessons.filter(x=>x.lesson.media?.video?.url)
+    .slice(0, 20)
+    .forEach(x=>{
+      addLink(videoList, `lesson.html?course=${encodeURIComponent(x.course.id)}&lesson=${encodeURIComponent(x.lesson.id)}`,
+        x.lesson.title, `${x.course.title} - ${x.module.title}`);
+    });
+
+  // Audios
+  lessons.filter(x=>x.lesson.media?.audio)
+    .slice(0, 20)
+    .forEach(x=>{
+      addLink(audioList, `lesson.html?course=${encodeURIComponent(x.course.id)}&lesson=${encodeURIComponent(x.lesson.id)}`,
+        x.lesson.title, `${x.course.title} - ${x.module.title}`);
+    });
+
+  // PPTX
+  lessons.filter(x=>x.lesson.media?.pptx)
+    .slice(0, 20)
+    .forEach(x=>{
+      addLink(pptxList, `lesson.html?course=${encodeURIComponent(x.course.id)}&lesson=${encodeURIComponent(x.lesson.id)}`,
+        x.lesson.title, `${x.course.title} - ${x.module.title}`);
+    });
+});
+</script>
+  <script src="app.js"></script>
+</body>
+</html>

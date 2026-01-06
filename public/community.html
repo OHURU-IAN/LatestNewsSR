@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Community</title>
+  <link rel="stylesheet" href="styles.css" />
+  
+</head>
+<body>
+  <div class="nav">
+    <div class="nav-inner">
+      <div class="nav-top">
+        <div class="brand">
+          <div class="brand-badge" aria-hidden="true"></div>
+          <div class="brand-text">
+            <div class="brand-title">Shepherd's Rod Study Hub</div>
+            <div class="brand-subtitle small">Courses / Library / Live / Community</div>
+          </div>
+        </div>
+        <div class="nav-spacer"></div>
+        <div class="userbox">
+          <span class="pill">Signed in as <b id="userLabel" data-user-label></b></span>
+        </div>
+        <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">Menu</button>
+      </div>
+
+      <div class="nav-links" id="navLinks">
+        <a href="index.html">Home</a>
+        <a href="presentations.html">Presentations</a>
+        <a href="live.html">Live</a>
+        <a href="community.html">Community</a>
+        <a href="admin.html">Admin</a>
+      </div>
+    </div>
+  </div>
+  <div class="container">
+    
+<div class="grid">
+  <div class="card">
+    <div class="hd">
+      <h1 class="h1">Community</h1>
+      <div class="small">Real-time channels to share questions, testimonies, and stay connected.</div>
+    </div>
+    <div class="bd">
+      <div class="flex">
+        <div class="pill">Channels</div>
+      </div>
+      <div class="sep"></div>
+      <div id="channels" class="list"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="hd">
+      <h2 class="h2" id="roomTitle">Chat</h2>
+      <div class="small">Pick a channel on the left.</div>
+    </div>
+    <div class="bd">
+      <div class="chat">
+        <div class="chat-log" id="log"></div>
+        <div class="row">
+          <input class="input" id="msg" placeholder="Write a message..." style="flex:1" />
+          <button class="btn" id="send">Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", async ()=>{
+  const data = await API.getJSON("/api/courses");
+  const channels = data.channels || [{id:"general",title:"General"}];
+
+  const list = qs("#channels");
+  let current = channels[0]?.id || "general";
+
+  const ws = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws");
+  const log = qs("#log");
+
+  const add = (m)=>{
+    const div = document.createElement("div");
+    div.className = "msg";
+    div.innerHTML = `<div class="meta">${escapeHTML(m.user)} - ${escapeHTML(fmtTime(m.ts))}</div><div class="body">${escapeHTML(m.text)}</div>`;
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+  };
+
+  function renderChannels(){
+    list.innerHTML = "";
+    channels.forEach(ch=>{
+      const a = document.createElement("a");
+      a.href = "#";
+      a.innerHTML = `<div style="font-weight:800; color:var(--text)">${escapeHTML(ch.title)}</div><div class="small">room: ${escapeHTML(ch.id)}</div>`;
+      a.addEventListener("click", (e)=>{
+        e.preventDefault();
+        switchRoom(ch.id, ch.title);
+      });
+      list.appendChild(a);
+    });
+  }
+
+  function switchRoom(roomId, title){
+    current = roomId;
+    qs("#roomTitle").textContent = title;
+    log.innerHTML = "";
+    ws.send(JSON.stringify({type:"join", room: `channel:${current}`, user:getUser()}));
+  }
+
+  ws.addEventListener("open", ()=>{
+    renderChannels();
+    switchRoom(current, channels[0]?.title || "General");
+  });
+
+  ws.addEventListener("message", (ev)=>{
+    const msg = JSON.parse(ev.data);
+    const room = `channel:${current}`;
+    if(msg.type === "history"){
+      (msg.messages||[]).forEach(add);
+    }
+    if(msg.type === "message" && msg.room === room){
+      add(msg);
+    }
+  });
+
+  const send = ()=>{
+    const input = qs("#msg");
+    const text = input.value.trim();
+    if(!text) return;
+    ws.send(JSON.stringify({type:"message", room:`channel:${current}`, user:getUser(), text}));
+    input.value = "";
+  };
+  qs("#send").addEventListener("click", send);
+  qs("#msg").addEventListener("keydown", (e)=>{ if(e.key==="Enter") send(); });
+});
+</script>
+
+    <div class="footer">
+      Shepherd's Rod Study Hub — Guided courses, live sessions, and community chat.
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

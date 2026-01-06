@@ -1,0 +1,15 @@
+{
+  "name": "shepherds-rod-study-hub",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Prototype: course-ordered presentations (video/audio/pptx), live page, and member communication channels.",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "ws": "^8.18.0"
+  }
+}

@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Lesson</title>
+  <link rel="stylesheet" href="styles.css" />
+  
+</head>
+<body>
+  <div class="nav">
+    <div class="nav-inner">
+      <div class="nav-top">
+        <div class="brand">
+          <div class="brand-badge" aria-hidden="true"></div>
+          <div class="brand-text">
+            <div class="brand-title">Shepherd's Rod Study Hub</div>
+            <div class="brand-subtitle small">Courses / Library / Live / Community</div>
+          </div>
+        </div>
+        <div class="nav-spacer"></div>
+        <div class="userbox">
+          <span class="pill">Signed in as <b id="userLabel" data-user-label></b></span>
+        </div>
+        <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">Menu</button>
+      </div>
+
+      <div class="nav-links" id="navLinks">
+        <a href="index.html">Home</a>
+        <a href="presentations.html">Presentations</a>
+        <a href="live.html">Live</a>
+        <a href="community.html">Community</a>
+        <a href="admin.html">Admin</a>
+      </div>
+    </div>
+  </div>
+  <div class="container">
+    <div class="two-col">
+      <div class="card">
+        <div class="hd">
+          <div class="label" id="crumbs"></div>
+          <h1 class="h1" id="lessonTitle">Lesson</h1>
+          <div class="small" id="lessonSummary"></div>
+        </div>
+        <div class="bd">
+          <div class="player" id="player"></div>
+          <div class="sep"></div>
+          <div class="flex">
+            <button class="btn primary" id="markDone">Mark complete</button>
+            <a class="btn ghost" id="backLink" href="presentations.html">Back</a>
+            <div class="right"></div>
+            <a class="btn ghost" id="pptxBtn" href="#" style="display:none" download>Download PPTX</a>
+          </div>
+          <div class="sep"></div>
+          <div class="small">
+            Watch the lesson, download slides when available, and mark it complete to track your progress.
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="hd">
+          <div class="label">Discussion</div>
+          <h2 class="h2">Lesson Chat</h2>
+          <div class="small">Real-time chat scoped to this lesson.</div>
+        </div>
+        <div class="bd">
+          <div class="chat">
+            <div class="chat-log" id="log"></div>
+            <div class="row">
+              <input class="input" id="msg" placeholder="Write a message..." style="flex:1" />
+              <button class="btn" id="send">Send</button>
+            </div>
+            <div class="small">Your name is <b data-user-label></b>. Change it on the Home page.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      Shepherd's Rod Study Hub — Guided courses, live sessions, and community chat.
+    </div>
+  </div>
+
+  <script>
+document.addEventListener("DOMContentLoaded", async ()=>{
+  const params = new URLSearchParams(location.search);
+  const courseId = params.get("course");
+  const lessonId = params.get("lesson");
+
+  const data = await API.getJSON("/api/courses");
+  const course = (data.courses||[]).find(c=>c.id===courseId) || (data.courses||[])[0];
+  if(!course) return;
+  let found = null, mod = null;
+  for(const m of course.modules){
+    const l = m.lessons.find(x=>x.id===lessonId);
+    if(l){ found = l; mod = m; break; }
+  }
+  if(!found){ found = course.modules?.[0]?.lessons?.[0]; mod = course.modules?.[0]; }
+  if(!found) return;
+
+  qs("#crumbs").textContent = `${course.title} - ${mod.title}`;
+  qs("#lessonTitle").textContent = found.title;
+  qs("#lessonSummary").textContent = found.summary || "";
+  qs("#backLink").href = `course.html?course=${encodeURIComponent(course.id)}`;
+
+  // Player
+  const player = qs("#player");
+  const v = found.media?.video;
+  if(v?.type === "embed" && v.url){
+    player.innerHTML = `<iframe src="${escapeHTML(v.url)}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
+  }else if(v?.type === "file" && v.url){
+    player.innerHTML = `<video controls src="${escapeHTML(v.url)}"></video>`;
+  }else{
+    player.innerHTML = `<div style="padding:16px" class="small">No video set for this lesson yet.</div>`;
+  }
+
+  // PPTX download
+  const p = found.media?.pptx;
+  if(p?.url){
+    const btn = qs("#pptxBtn");
+    btn.style.display = "inline-flex";
+    btn.href = p.url;
+  }
+
+  // Mark complete
+  qs("#markDone").addEventListener("click", ()=>{
+    markLessonComplete(course.id, found.id);
+    alert("Marked complete.");
+  });
+
+  // Lesson chat (ws)
+  const room = `lesson:${course.id}:${found.id}`;
+  const ws = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws");
+
+  const log = qs("#log");
+  const add = (m)=>{
+    const div = document.createElement("div");
+    div.className = "msg";
+    div.innerHTML = `<div class="meta">${escapeHTML(m.user)} - ${escapeHTML(fmtTime(m.ts))}</div><div class="body">${escapeHTML(m.text)}</div>`;
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+  };
+
+  ws.addEventListener("open", ()=>{
+    ws.send(JSON.stringify({type:"join", room, user:getUser()}));
+  });
+  ws.addEventListener("message", (ev)=>{
+    const msg = JSON.parse(ev.data);
+    if(msg.type === "history"){
+      (msg.messages||[]).forEach(add);
+    }
+    if(msg.type === "message" && msg.room === room){
+      add(msg);
+    }
+  });
+
+  const send = ()=>{
+    const input = qs("#msg");
+    const text = input.value.trim();
+    if(!text) return;
+    ws.send(JSON.stringify({type:"message", room, user:getUser(), text}));
+    input.value = "";
+  };
+  qs("#send").addEventListener("click", send);
+  qs("#msg").addEventListener("keydown", (e)=>{ if(e.key==="Enter") send(); });
+});
+</script>
+  <script src="app.js"></script>
+</body>
+</html>

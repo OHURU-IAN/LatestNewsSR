@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Course</title>
+  <link rel="stylesheet" href="styles.css" />
+  
+</head>
+<body>
+  <div class="nav">
+    <div class="nav-inner">
+      <div class="nav-top">
+        <div class="brand">
+          <div class="brand-badge" aria-hidden="true"></div>
+          <div class="brand-text">
+            <div class="brand-title">Shepherd's Rod Study Hub</div>
+            <div class="brand-subtitle small">Courses / Library / Live / Community</div>
+          </div>
+        </div>
+        <div class="nav-spacer"></div>
+        <div class="userbox">
+          <span class="pill">Signed in as <b id="userLabel" data-user-label></b></span>
+        </div>
+        <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">Menu</button>
+      </div>
+
+      <div class="nav-links" id="navLinks">
+        <a href="index.html">Home</a>
+        <a href="presentations.html">Presentations</a>
+        <a href="live.html">Live</a>
+        <a href="community.html">Community</a>
+        <a href="admin.html">Admin</a>
+      </div>
+    </div>
+  </div>
+  <div class="container">
+    <div class="card hero">
+      <div class="label">Guided course</div>
+      <h1 class="h1" id="courseTitle">Course</h1>
+      <div class="subtitle" id="courseDesc"></div>
+      <div class="hero-actions">
+        <div class="pill" id="courseProgress"></div>
+        <a class="btn ghost" href="presentations.html">Back to Presentations</a>
+      </div>
+      <div class="progress">
+        <div class="progress-fill" id="courseProgressFill"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="hd">
+        <div class="label">Path</div>
+        <h2 class="h2">Modules</h2>
+        <div class="small">Move through lessons in order. Expand a module to continue.</div>
+      </div>
+      <div class="bd">
+        <div id="modules" class="stack"></div>
+      </div>
+    </div>
+
+    <div class="footer">
+      Shepherd's Rod Study Hub — Guided courses, live sessions, and community chat.
+    </div>
+  </div>
+
+  <script>
+document.addEventListener("DOMContentLoaded", async ()=>{
+  const params = new URLSearchParams(location.search);
+  const courseId = params.get("course");
+  const data = await API.getJSON("/api/courses");
+  const course = (data.courses||[]).find(c=>c.id===courseId) || (data.courses||[])[0];
+  if(!course) return;
+
+  qs("#courseTitle").textContent = course.title;
+  qs("#courseDesc").textContent = course.description || "";
+
+  const comp = courseCompletion(course);
+  qs("#courseProgress").textContent = `Progress: ${comp.done}/${comp.total} (${comp.pct}%)`;
+  const fill = qs("#courseProgressFill");
+  if(fill) fill.style.width = `${comp.pct}%`;
+
+  const root = qs("#modules");
+  root.innerHTML = "";
+
+  course.modules.forEach(m=>{
+    const details = document.createElement("details");
+    details.className = "module";
+    details.open = true;
+    details.innerHTML = `
+      <summary>
+        <div>
+          <div class="list-title">${escapeHTML(m.title)}</div>
+          <div class="muted small">Lessons in order. Mark complete after studying.</div>
+        </div>
+        <span class="pill-progress">${m.lessons.length} lessons</span>
+      </summary>
+    `;
+    const body = document.createElement("div");
+    body.className = "module-body";
+    m.lessons.forEach(l=>{
+      const done = isLessonComplete(course.id, l.id);
+      const row = document.createElement("div");
+      row.className = "lesson-row";
+      row.innerHTML = `
+        <div class="lesson-status ${done ? "done" : ""}">${done ? "[x]" : "[ ]"}</div>
+        <div class="lesson-meta">
+          <div class="lesson-title">${escapeHTML(l.title)}</div>
+          <div class="small">${escapeHTML(l.summary||"")}</div>
+        </div>
+        <a class="btn ghost small" href="lesson.html?course=${encodeURIComponent(course.id)}&lesson=${encodeURIComponent(l.id)}">Open</a>`;
+      body.appendChild(row);
+    });
+    details.appendChild(body);
+    root.appendChild(details);
+  });
+});
+</script>
+  <script src="app.js"></script>
+</body>
+</html>

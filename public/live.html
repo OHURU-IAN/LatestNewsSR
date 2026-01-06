@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Live</title>
+  <link rel="stylesheet" href="styles.css" />
+  
+</head>
+<body>
+  <div class="nav">
+    <div class="nav-inner">
+      <div class="nav-top">
+        <div class="brand">
+          <div class="brand-badge" aria-hidden="true"></div>
+          <div class="brand-text">
+            <div class="brand-title">Shepherd's Rod Study Hub</div>
+            <div class="brand-subtitle small">Courses / Library / Live / Community</div>
+          </div>
+        </div>
+        <div class="nav-spacer"></div>
+        <div class="userbox">
+          <span class="pill">Signed in as <b id="userLabel" data-user-label></b></span>
+        </div>
+        <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">Menu</button>
+      </div>
+
+      <div class="nav-links" id="navLinks">
+        <a href="index.html">Home</a>
+        <a href="presentations.html">Presentations</a>
+        <a href="live.html">Live</a>
+        <a href="community.html">Community</a>
+        <a href="admin.html">Admin</a>
+      </div>
+    </div>
+  </div>
+  <div class="container">
+    <div class="two-col">
+      <div class="card">
+        <div class="hd">
+          <h1 class="h1">Live</h1>
+          <div class="small">Live status, player, and chat in one place. Join when sessions are on.</div>
+        </div>
+        <div class="bd">
+          <div class="flex">
+            <div class="pill" id="liveStatus">Checking live status...</div>
+            <div class="right"></div>
+            <button class="btn" id="refresh">Refresh</button>
+          </div>
+          <div class="sep"></div>
+          <div class="player" id="livePlayer">
+            <div style="padding:16px" class="small">Loading...</div>
+          </div>
+          <div class="sep"></div>
+          <div class="small">
+            Join when live is on, watch the stream, and stay in sync with chat.
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="hd">
+          <h2 class="h2">Live Chat</h2>
+          <div class="small">Real-time chat for the live room.</div>
+        </div>
+        <div class="bd">
+          <div class="chat" style="height:480px">
+            <div class="chat-log" id="log"></div>
+            <div class="row">
+              <input class="input" id="msg" placeholder="Write a message..." style="flex:1" />
+          <button class="btn" id="send">Send</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", ()=>{
+  const room = "live";
+  const ws = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws");
+
+  const log = qs("#log");
+  const add = (m)=>{
+    const div = document.createElement("div");
+    div.className = "msg";
+    div.innerHTML = `<div class="meta">${escapeHTML(m.user)} - ${escapeHTML(fmtTime(m.ts))}</div><div class="body">${escapeHTML(m.text)}</div>`;
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+  };
+
+  ws.addEventListener("open", ()=>{
+    ws.send(JSON.stringify({type:"join", room, user:getUser()}));
+  });
+  ws.addEventListener("message", async (ev)=>{
+    const msg = JSON.parse(ev.data);
+    if(msg.type === "history"){
+      (msg.messages||[]).forEach(add);
+    }
+    if(msg.type === "message" && msg.room === room){
+      add(msg);
+    }
+    if(msg.type === "live_status"){
+      renderLive(msg);
+    }
+  });
+
+  const send = ()=>{
+    const input = qs("#msg");
+    const text = input.value.trim();
+    if(!text) return;
+    ws.send(JSON.stringify({type:"message", room, user:getUser(), text}));
+    input.value = "";
+  };
+  qs("#send").addEventListener("click", send);
+  qs("#msg").addEventListener("keydown", (e)=>{ if(e.key==="Enter") send(); });
+
+  async function fetchLive(){
+    const status = await API.getJSON("/api/live/status");
+    renderLive(status);
+  }
+
+  function renderLive(status){
+    const pill = qs("#liveStatus");
+    const player = qs("#livePlayer");
+    if(status.isLive){
+      pill.innerHTML = `LIVE NOW - <span class="kbd">${escapeHTML(status.title||"Live")}</span>`;
+      if(status.hlsUrl){
+        player.innerHTML = `<video controls autoplay playsinline src="${escapeHTML(status.hlsUrl)}"></video>`;
+      }else if(status.embedUrl){
+        player.innerHTML = `<iframe src="${escapeHTML(status.embedUrl)}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
+      }else{
+        player.innerHTML = `<div style="padding:16px" class="small">Live is on, but no stream URL configured yet.</div>`;
+      }
+    }else{
+      pill.textContent = "Not live right now";
+      player.innerHTML = `<div style="padding:16px" class="small">No live stream at the moment. Check back later.</div>`;
+    }
+  }
+
+  qs("#refresh").addEventListener("click", fetchLive);
+  fetchLive();
+});
+</script>
+
+    <div class="footer">
+      Shepherd's Rod Study Hub — Guided courses, live sessions, and community chat.
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
