@@ -1,4 +1,4 @@
-# Shepherd's Rod Study Hub
+# Study Hub
 
 A learning platform prototype. It serves ordered courses (course → module → lesson) with video, audio and slide media. It adds **real-time chat** for each lesson and community channel, and a live-stream page an admin can switch on and off.
 
